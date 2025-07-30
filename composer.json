@@ -1,0 +1,28 @@
+{
+  "name": "wonderwp/import-foundation",
+  "description": "WonderWp ImportFoundation Component",
+  "type": "library",
+  "keywords": ["import","WonderWp","WordPress"],
+  "homepage": "https://github.com/wonderwp/ImportFoundation",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Jeremy Desvaux",
+      "homepage": "https://jdmweb.com"
+    },
+    {
+      "name": "WonderWp Community",
+      "homepage": "https://wonderwp.net/Contribution/Contributors.html"
+    }
+  ],
+  "require": {
+    "php": ">=8.0"
+  },
+  "autoload": {
+    "psr-4": {"WonderWp\\Component\\ImportFoundation\\": "src"},
+    "exclude-from-classmap": [
+      "/Tests/"
+    ]
+  },
+  "minimum-stability": "dev"
+}
