@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderWp\Component\ImportFoundation\Response;
+namespace WonderWp\Component\ImportFoundation\Responses;
 
 interface ResetResponseInterface
 {

@@ -3,7 +3,7 @@
 namespace WonderWp\Component\ImportFoundation\Importers;
 
 use WonderWp\Component\ImportFoundation\Requests\ImportRequestInterface;
-use WonderWp\Component\ImportFoundation\Response\ImportResponseInterface;
+use WonderWp\Component\ImportFoundation\Responses\ImportResponseInterface;
 use WonderWp\Component\Logging\LoggerInterface;
 use WonderWp\Component\Task\Progress\ProgressInterface;
 
