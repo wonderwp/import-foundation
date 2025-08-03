@@ -4,8 +4,8 @@ namespace WonderWp\Component\ImportFoundation\Syncers;
 
 use WonderWp\Component\ImportFoundation\Persisters\PersisterInterface;
 use WonderWp\Component\ImportFoundation\Requests\SyncRequestInterface;
-use WonderWp\Component\ImportFoundation\Response\SyncResponse;
-use WonderWp\Component\ImportFoundation\Response\SyncResponseInterface;
+use WonderWp\Component\ImportFoundation\Responses\SyncResponse;
+use WonderWp\Component\ImportFoundation\Responses\SyncResponseInterface;
 use Throwable;
 use WonderWp\Component\Logging\HasLoggerInterface;
 use WonderWp\Component\Logging\LoggerInterface;
@@ -34,8 +34,7 @@ abstract class AbstractPostsSyncer implements SyncerInterface
 
     public function sync(
         SyncRequestInterface $syncRequest,
-        LoggerInterface      $logger,
-        ProgressInterface    $progress
+        LoggerInterface      $logger
     ): SyncResponseInterface
     {
         try {
@@ -67,7 +66,6 @@ abstract class AbstractPostsSyncer implements SyncerInterface
                 $syncRequest->isDryRun(),
                 $opCount,
                 $syncResponse,
-                $progress,
                 $logger
             );
             $logger->info('[Syncer] Sync operation executed');
@@ -143,7 +141,6 @@ abstract class AbstractPostsSyncer implements SyncerInterface
         bool                  $isDryRun,
         int                   $opCount,
         SyncResponseInterface $syncResponse,
-        ProgressInterface     $progress,
         LoggerInterface       $logger
     )
     {
@@ -152,7 +149,7 @@ abstract class AbstractPostsSyncer implements SyncerInterface
         }
 
         //Run the sync operation
-        $progress->initWith(sprintf('[Syncer] Executing %d operations', $opCount), $opCount);
+        //$progress->initWith(sprintf('[Syncer] Executing %d operations', $opCount), $opCount);
 
         //We create the products
         if (!empty($postsToCreate)) {
@@ -167,7 +164,7 @@ abstract class AbstractPostsSyncer implements SyncerInterface
                     $syncResponse->addCreatedItem($this->idToLog($newProduct));
                 }
                 unset($postsToCreate[$i]);
-                $progress->tick();
+                //$progress->tick();
             }
         }
 
@@ -187,7 +184,7 @@ abstract class AbstractPostsSyncer implements SyncerInterface
                     $syncResponse->addUpdatedItem($this->idToLog($newProduct), $updateReasons);
                 }
                 unset($postsToUpdate[$j]);
-                $progress->tick();
+                //$progress->tick();
             }
         }
 
@@ -197,11 +194,11 @@ abstract class AbstractPostsSyncer implements SyncerInterface
                 $this->persister->delete($existingProduct, $isDryRun);
                 $syncResponse->addDeletedItem($this->idToLog($existingProduct));
                 unset($postsToDelete[$k]);
-                $progress->tick();
+                //$progress->tick();
             }
         }
 
-        $progress->finish();
+        //$progress->finish();
     }
 
     protected function idToLog(WP_Post $post): string

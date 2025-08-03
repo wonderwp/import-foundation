@@ -5,92 +5,88 @@ namespace WonderWp\Component\ImportFoundation\Importers;
 use WonderWp\Component\ImportFoundation\Commands\ImportWebserviceData;
 use WonderWp\Component\ImportFoundation\Exceptions\TransformException;
 use WonderWp\Component\ImportFoundation\Persisters\PersisterInterface;
-use WonderWp\Component\ImportFoundation\Repositories\ApiRepositoryInterface;
-use WonderWp\Component\ImportFoundation\Repositories\BddRepositoryInterface;
+use WonderWp\Component\ImportFoundation\Repositories\SourceRepositoryInterface;
+use WonderWp\Component\ImportFoundation\Repositories\DestinationRepositoryInterface;
+use WonderWp\Component\ImportFoundation\Repositories\RepositoryInterface;
 use WonderWp\Component\ImportFoundation\Requests\ImportRequest;
 use WonderWp\Component\ImportFoundation\Requests\ImportRequestInterface;
 use WonderWp\Component\ImportFoundation\Requests\SyncRequest;
-use WonderWp\Component\ImportFoundation\Response\ImportResponse;
-use WonderWp\Component\ImportFoundation\Response\ImportResponseInterface;
+use WonderWp\Component\ImportFoundation\Responses\ImportResponse;
+use WonderWp\Component\ImportFoundation\Responses\ImportResponseInterface;
 use WonderWp\Component\ImportFoundation\Syncers\SyncerInterface;
 use WonderWp\Component\ImportFoundation\Transformers\TransformerInterface;
 use WonderWp\Component\Logging\LoggerInterface;
 use WonderWp\Component\Task\Progress\ProgressInterface;
+use WonderWp\Component\Task\Traits\HasDryRunInterface;
 use WP_Post;
 use function WonderWp\Functions\trace;
 
 abstract class AbstractImporter implements ImporterInterface
 {
-    protected ApiRepositoryInterface $apiRepository;
-    protected TransformerInterface $apiTransformer;
-    protected BddRepositoryInterface $bddRepository;
-    protected TransformerInterface $bddTransformer;
+    protected RepositoryInterface $sourceRepository;
+    protected TransformerInterface $sourceTransformer;
+    protected RepositoryInterface $destinationRepository;
+    protected TransformerInterface $destinationTransformer;
     protected SyncerInterface $syncer;
 
-    /**
-     * @param BddRepositoryInterface $bddRepository
-     * @param ApiRepositoryInterface $apiRepository
-     * @param SyncerInterface $syncer
-     */
     public function __construct(
-        ApiRepositoryInterface $apiRepository,
-        TransformerInterface   $apiTransformer,
-        BddRepositoryInterface $bddRepository,
-        TransformerInterface   $bddTransformer,
-        SyncerInterface        $syncer
+        RepositoryInterface  $sourceRepository,
+        TransformerInterface $sourceTransformer,
+        RepositoryInterface  $destinationRepository,
+        TransformerInterface $destinationTransformer,
+        SyncerInterface      $syncer
     )
     {
-        $this->apiRepository = $apiRepository;
-        $this->apiTransformer = $apiTransformer;
-        $this->bddRepository = $bddRepository;
-        $this->bddTransformer = $bddTransformer;
+        $this->sourceRepository = $sourceRepository;
+        $this->sourceTransformer = $sourceTransformer;
+        $this->destinationRepository = $destinationRepository;
+        $this->destinationTransformer = $destinationTransformer;
         $this->syncer = $syncer;
     }
 
     public function forgeRequest(array $args, array $assocArgs): ImportRequestInterface
     {
         $request = new ImportRequest();
-        $request->setDryRun($assocArgs[ImportWebserviceData::DRY_RUN_ARG] ?? false);
+        $request->setDryRun($assocArgs[HasDryRunInterface::DRY_RUN_ARG] ?? false);
 
         return $request;
     }
 
-    public function migrate(
+    public function import(
         ImportRequestInterface $request,
-        LoggerInterface        $logger,
-        ProgressInterface      $progress
+        LoggerInterface        $logger
     ): ImportResponseInterface
     {
         $isDryRun = $request->isDryRun();
 
-        //Fetch Data from API
-        $apiFetchStart = microtime(true);
-        $logger->info('[Importer] Fetching data from API');
-        $apiPosts = $this->apiRepository->findAll();
-        $logger->info(sprintf('[Importer] %d API data fetched in %d seconds', count($apiPosts), microtime(true) - $apiFetchStart));
-        $logger->info('[Importer] Transforming API data');
+        //Fetch Data from SOURCE
+        $sourceFetchStart = microtime(true);
+        $logger->info('[Importer] Fetching data from SOURCE');
+        $sourcePosts = $this->sourceRepository->findAll();
+        $logger->info(sprintf('[Importer] %d SOURCE data fetched in %d seconds', count($sourcePosts), microtime(true) - $sourceFetchStart));
+        $logger->info('[Importer] Transforming SOURCE data');
 
-        $apiPosts = array_map(function (WP_Post $post) use ($logger, $isDryRun): ?WP_Post {
+        $sourcePosts = array_map(function (WP_Post $post) use ($logger, $isDryRun): ?WP_Post {
             try {
-                return $this->apiTransformer->transform($post, $isDryRun);
+                return $this->sourceTransformer->transform($post, $isDryRun);
             } catch (TransformException $e) {
-                $logger->error(sprintf('Erreur de transformation du produit api %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
+                $logger->error(sprintf('Erreur de transformation du produit source %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
                 return null;
             }
-        }, $apiPosts);
-        $apiPosts = array_filter($apiPosts);
+        }, $sourcePosts);
+        $sourcePosts = array_filter($sourcePosts);
 
-        $logger->info(sprintf('[Importer] %d API data transformed in %d seconds', count($apiPosts), microtime(true) - $apiFetchStart));
+        $logger->info(sprintf('[Importer] %d SOURCE data transformed in %d seconds', count($sourcePosts), microtime(true) - $sourceFetchStart));
 
         //Fetch Data from BDD
         $bddFetchStart = microtime(true);
         $logger->info('[Importer] Fetching data from BDD');
-        $bddPosts = $this->bddRepository->findAll();
+        $bddPosts = $this->destinationRepository->findAll();
         $logger->info(sprintf('[Importer] %d BDD data fetched in %d seconds', count($bddPosts), microtime(true) - $bddFetchStart));
         $logger->info('[Importer] Transforming BDD data');
         $bddPosts = array_map(function (WP_Post $post) use ($logger, $isDryRun): ?WP_Post {
             try {
-                return $this->bddTransformer->transform($post, $isDryRun);
+                return $this->destinationTransformer->transform($post, $isDryRun);
             } catch (TransformException $e) {
                 $logger->error(sprintf('Erreur de transformation du produit bdd %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
                 return null;
@@ -101,8 +97,8 @@ abstract class AbstractImporter implements ImporterInterface
 
         $syncStart = microtime(true);
         $logger->info('[Importer] Starting the syncing process');
-        $syncRequest = new SyncRequest($apiPosts, $bddPosts, $isDryRun);
-        $syncResponse = $this->syncer->sync($syncRequest, $logger, $progress);
+        $syncRequest = new SyncRequest($sourcePosts, $bddPosts, $isDryRun);
+        $syncResponse = $this->syncer->sync($syncRequest, $logger);
         $syncResponse->setGenerationTime(microtime(true) - $syncStart);
         $logger->info(sprintf('[Importer] Syncing process done in %d seconds', $syncResponse->getGenerationTime()));
 

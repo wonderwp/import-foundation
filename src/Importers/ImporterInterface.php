@@ -11,10 +11,9 @@ interface ImporterInterface
 {
     public function forgeRequest(array $args, array $assocArgs): ImportRequestInterface;
 
-    public function migrate(
+    public function import(
         ImportRequestInterface $request,
-        LoggerInterface $logger,
-        ProgressInterface $progress
+        LoggerInterface $logger
     ): ImportResponseInterface;
 }
 

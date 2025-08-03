@@ -8,9 +8,5 @@ interface ResetterInterface
 {
     const ALL = 'all';
 
-    const COMPANIES = 'companies';
-
-    const PRODUCTS = 'products';
-
     public function reset(): ResetResponseInterface;
 }
