@@ -35,8 +35,7 @@ abstract class AbstractPostsSyncer implements SyncerInterface
     public function sync(
         SyncRequestInterface $syncRequest,
         LoggerInterface      $logger
-    ): SyncResponseInterface
-    {
+    ): SyncResponseInterface {
         try {
             $syncResponse = new SyncResponse(200, SyncResponseInterface::SUCCESS);
 
@@ -46,10 +45,11 @@ abstract class AbstractPostsSyncer implements SyncerInterface
             $opCount = count($postsToCreate) + count($postsToUpdate) + count($postsToDelete);
 
             $logger->info(sprintf('[Syncer] Sync request analysed, %d operations to execute', $opCount));
-            $logger->info(sprintf('[Syncer] Posts to create: %d, Posts to update: %d, Posts to delete: %d, Posts to skip: %d',
+            $logger->info(sprintf(
+                '[Syncer] Posts to create: %d, Posts to update: %d, Posts to delete: %s, Posts to skip: %d',
                 count($postsToCreate),
                 count($postsToUpdate),
-                count($postsToDelete),
+                $syncRequest->isDeletionEnabled() ? count($postsToDelete) : 'Disabled',
                 count($syncResponse->getSkippedItems())
             ));
 
@@ -123,14 +123,15 @@ abstract class AbstractPostsSyncer implements SyncerInterface
 
         //We compare the existing products with the new ones
         //If an existing product is not in the new products, we delete it
-        foreach ($existingPosts as $existingProduct) {
-            $p = $this->findPost($newPosts, $existingProduct);
+        if ($syncRequest->isDeletionEnabled()) {
+            foreach ($existingPosts as $existingProduct) {
+                $p = $this->findPost($newPosts, $existingProduct);
 
-            if (empty($p)) {
-                $postsToDelete[] = $existingProduct;
+                if (empty($p)) {
+                    $postsToDelete[] = $existingProduct;
+                }
             }
         }
-
         return [$postsToCreate, $postsToUpdate, $postsToDelete];
     }
 
@@ -142,8 +143,7 @@ abstract class AbstractPostsSyncer implements SyncerInterface
         int                   $opCount,
         SyncResponseInterface $syncResponse,
         LoggerInterface       $logger
-    )
-    {
+    ) {
         if ($this->persister instanceof HasLoggerInterface) {
             $this->persister->setLogger($logger);
         }
@@ -330,6 +330,7 @@ abstract class AbstractPostsSyncer implements SyncerInterface
     {
         //Metas
         $existingPostDataMetaInputs = $newPostData[PersisterInterface::META_INPUT] ?? [];
+
         return array_keys($existingPostDataMetaInputs);
     }
 
@@ -384,6 +385,4 @@ abstract class AbstractPostsSyncer implements SyncerInterface
         $this->postMetaComparisonIndexes = $postMetaComparisonIndexes;
         return $this;
     }
-
 }
-

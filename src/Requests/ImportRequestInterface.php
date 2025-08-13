@@ -2,9 +2,10 @@
 
 namespace WonderWp\Component\ImportFoundation\Requests;
 
-interface ImportRequestInterface
-{
-    public function isDryRun(): bool;
+use WonderWp\Component\Task\Traits\HasDryRunInterface;
 
-    public function setDryRun(bool $dryRun): static;
+interface ImportRequestInterface extends HasDeletionEnabledInterface, HasDryRunInterface
+{
+    const DELETION_ENABLED_ARG = 'deletion_enabled';
+    const DRY_RUN_ARG = 'dry_run';
 }

@@ -2,9 +2,10 @@
 
 namespace WonderWp\Component\ImportFoundation\Requests;
 
+use WonderWp\Component\Task\Traits\HasDryRunInterface;
 use WP_Post;
 
-interface SyncRequestInterface
+interface SyncRequestInterface extends HasDryRunInterface, HasDeletionEnabledInterface
 {
     /**
      * @return WP_Post[]
@@ -25,7 +26,4 @@ interface SyncRequestInterface
      * @param WP_Post[] $newPosts
      */
     public function setNewPosts(array $newPosts): static;
-
-    public function isDryRun(): bool;
-    public function setDryRun(bool $dryRun): static;
 }

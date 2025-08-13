@@ -48,6 +48,7 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $request = new ImportRequest();
         $request->setDryRun($assocArgs[HasDryRunInterface::DRY_RUN_ARG] ?? false);
+        $request->setDeletionEnabled($assocArgs[ImportRequest::DELETION_ENABLED_ARG] ?? false);
 
         return $request;
     }
@@ -82,8 +83,8 @@ abstract class AbstractImporter implements ImporterInterface
         $bddFetchStart = microtime(true);
         $logger->info('[Importer] Fetching data from BDD');
         $bddPosts = $this->destinationRepository->findAll();
-        $logger->info(sprintf('[Importer] %d BDD data fetched in %d seconds', count($bddPosts), microtime(true) - $bddFetchStart));
-        $logger->info('[Importer] Transforming BDD data');
+        $logger->info(sprintf('[Importer] %d DESTINATION data fetched in %d seconds', count($bddPosts), microtime(true) - $bddFetchStart));
+        $logger->info('[Importer] Transforming DESTINATION data');
         $bddPosts = array_map(function (WP_Post $post) use ($logger, $isDryRun): ?WP_Post {
             try {
                 return $this->destinationTransformer->transform($post, $isDryRun);
@@ -93,11 +94,11 @@ abstract class AbstractImporter implements ImporterInterface
             }
         }, $bddPosts);
         $bddPosts = array_filter($bddPosts);
-        $logger->info(sprintf('[Importer] %d BDD data transformed in %d seconds', count($bddPosts), microtime(true) - $bddFetchStart));
+        $logger->info(sprintf('[Importer] %d DESTINATION data transformed in %d seconds', count($bddPosts), microtime(true) - $bddFetchStart));
 
         $syncStart = microtime(true);
         $logger->info('[Importer] Starting the syncing process');
-        $syncRequest = new SyncRequest($sourcePosts, $bddPosts, $isDryRun);
+        $syncRequest = new SyncRequest($sourcePosts, $bddPosts, $isDryRun, $request->isDeletionEnabled());
         $syncResponse = $this->syncer->sync($syncRequest, $logger);
         $syncResponse->setGenerationTime(microtime(true) - $syncStart);
         $logger->info(sprintf('[Importer] Syncing process done in %d seconds', $syncResponse->getGenerationTime()));

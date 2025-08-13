@@ -6,25 +6,31 @@ use WonderWp\Component\Task\Traits\HasDryRun;
 use WonderWp\Component\Task\Traits\HasDryRunInterface;
 use WP_Post;
 
-class SyncRequest implements SyncRequestInterface, HasDryRunInterface
+class SyncRequest implements SyncRequestInterface
 {
     use HasDryRun;
+    use HasDeletionEnabled;
+
     protected array $existingPosts = [];
     protected array $newPosts = [];
 
     /**
      * @param WP_Post[] $existingPosts
      * @param WP_Post[] $newPosts
+     * @param bool $dryRun
+     * @param bool $deletionEnabled
      */
     public function __construct(
         array $newPosts,
         array $existingPosts,
-        bool $dryRun = false
+        bool $dryRun = false,
+        bool $deletionEnabled = false
     )
     {
         $this->newPosts = $newPosts;
         $this->existingPosts = $existingPosts;
         $this->dryRun = $dryRun;
+        $this->deletionEnabled = $deletionEnabled;
     }
 
     public function getExistingPosts(): array

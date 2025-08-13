@@ -9,7 +9,7 @@ abstract class AbstractImportResponse extends AbstractResponse
     public function __construct(int $code = 0, string $msgKey = '', string $textDomain = '')
     {
         if(empty($textDomain)){
-            $textDomain = 'feocc-catalogue';
+            $textDomain = 'wonderwp-import-foundation';
         }
         parent::__construct($code, $msgKey, $textDomain);
     }

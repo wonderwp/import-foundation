@@ -44,4 +44,6 @@ interface SyncResponseInterface
 
     public function addErroredItem(string $idToLog, WP_Error $error);
 
+    public function toShortArray(): array;
+
 }
