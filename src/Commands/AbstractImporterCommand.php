@@ -105,6 +105,9 @@ abstract class AbstractImporterCommand extends AbstractWpCliCommand implements H
     {
         $this->logger->success('Import response');
         $this->logger->info('🟢 Duration time: ' . ($endTime - $startTime) . 's');
+        $syncResponse = $response->getSyncResponse();
+        $this->logger->info('🟢 Sync report (short) : ' . print_r($syncResponse->toShortArray(), true));
+        $this->logger->info('🟢 Sync report (long) : ' . print_r($syncResponse, true));
     }
 
     protected function outputErrorResponse(ImportResponse $response, $startTime, $endTime, string $importerName)
