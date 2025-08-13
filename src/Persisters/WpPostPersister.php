@@ -12,6 +12,13 @@ class WpPostPersister implements PersisterInterface, HasLoggerInterface
 {
     use HasLoggerTrait;
 
+    private WpMediaPersister $mediaPersister;
+
+    public function __construct(WpMediaPersister $mediaPersister)
+    {
+        $this->mediaPersister = $mediaPersister;
+    }
+
     public function setLogger(LoggerInterface $logger): static
     {
         $this->logger = $logger;
@@ -123,7 +130,28 @@ class WpPostPersister implements PersisterInterface, HasLoggerInterface
     {
         $associatedMedia = [];
 
-        return apply_filters('WpPostPersister/savePostData/savePostMedia/associatedMedia', $associatedMedia, $postId, $postData, $updateReasons, $isDryRun, $this);
+        if (!empty($postData[PersisterInterface::MEDIA_INPUT])) {
+            var_dump($postData[PersisterInterface::MEDIA_INPUT]);
+            foreach ($postData[PersisterInterface::MEDIA_INPUT] as $mediaKey => $mediaValue) {
+                $associatedMedia[$mediaKey] = $isDryRun ? false : $this->mediaPersister->downloadAndCreateAttachment($mediaValue, $postId, $mediaKey, $isDryRun);
+            }
+        }
+
+        $associatedMedia = apply_filters('WpPostPersister/savePostData/savePostMedia/associatedMedia', $associatedMedia, $postId, $postData, $updateReasons, $isDryRun, $this);
+        
+        //Update the post with the associated media
+        foreach ($associatedMedia as $mediaKey => $attachmentId) {
+            if ($attachmentId && !is_wp_error($attachmentId)) {
+                //If it's a featured image, set it as the featured image
+                if ($mediaKey === PersisterInterface::FEATURED_IMAGE_URL) {
+                    set_post_thumbnail($postId, $attachmentId);
+                } else {
+                    update_post_meta($postId, $mediaKey, apply_filters('WpPostPersister/savePostData/savePostMedia/associatedMedia/metaValue', $attachmentId, $mediaKey, $postId));
+                }
+            }
+        }
+
+        return $associatedMedia;
     }
 
     protected function saveAcfFields(WP_Error|int $postId, array $postData, ?array $updateReasons, bool $isDryRun): array
@@ -167,45 +195,5 @@ class WpPostPersister implements PersisterInterface, HasLoggerInterface
         }
 
         return (int) $attachment->ID;
-    }
-
-    public function uploadImageFromContent(string $fileName, string $content, ?int $postId = null): int|\WP_Error
-    {
-        // Check if an identical attachment already exists
-        $existingId = $this->getExistingAttachment($fileName);
-        if ($existingId) {
-            return $existingId;
-        }
-
-        // Upload the new photo to the media library
-        $upload = wp_upload_bits($fileName, null, $content);
-        if ($upload['error']) {
-            return new \WP_Error('upload_error', $upload['error']);
-        }
-
-        // Create a new attachment post
-        $attachment = [
-            'post_mime_type' => $upload['type'],
-            'post_title' => sanitize_file_name($upload['file']),
-            'post_content' => '',
-            'post_status' => 'inherit',
-        ];
-
-        // Insert the attachment into the media library
-        $attachmentId = wp_insert_attachment($attachment, $upload['file'], $postId);
-        if (is_wp_error($attachmentId)) {
-            return $attachmentId;
-        }
-
-        // Generate the attachment metadata
-        $attachmentData = wp_generate_attachment_metadata($attachmentId, $upload['file']);
-        if (is_wp_error($attachmentData)) {
-            return $attachmentData;
-        }
-
-        // Update the attachment metadata in the database
-        wp_update_attachment_metadata($attachmentId, $attachmentData);
-
-        return $attachmentId;
     }
 }
