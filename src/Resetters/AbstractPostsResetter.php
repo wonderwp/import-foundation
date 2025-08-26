@@ -6,7 +6,7 @@ use WonderWp\Component\ImportFoundation\Response\ResetResponse;
 use WonderWp\Component\ImportFoundation\Response\ResetResponseInterface;
 use Throwable;
 
-abstract class AbstractPostResetter implements ResetterInterface
+abstract class AbstractPostsResetter implements ResetterInterface
 {
     public function reset(): ResetResponseInterface
     {

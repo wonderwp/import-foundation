@@ -6,5 +6,5 @@ use WP_Post;
 
 interface TransformerInterface
 {
-    public function transform(WP_Post $post, bool $isDryRun): WP_Post;
+    public function transform(mixed $item, bool $isDryRun): mixed;
 }

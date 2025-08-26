@@ -6,7 +6,6 @@ use WP_Error;
 
 class SyncResponse extends AbstractImportResponse implements SyncResponseInterface
 {
-
     protected float $generationTime = 0;
     protected array $newItems = [];
     protected array $existingItems = [];

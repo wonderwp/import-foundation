@@ -60,58 +60,86 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $isDryRun = $request->isDryRun();
 
-        //Fetch Data from SOURCE
+        $sourceData = $this->fetchSourceData($logger);
+        $sourceData = $this->transformSourceData($sourceData, $logger, $isDryRun);
+
+        $destinationData = $this->fetchDestinationData($logger);
+        $destinationData = $this->transformDestinationData($destinationData, $logger, $isDryRun);
+
+        $syncResponse = $this->syncData($sourceData, $destinationData, $request, $logger);
+
+        return $this->forgeImportResponse($syncResponse);
+    }
+
+    protected function fetchSourceData(LoggerInterface $logger): array
+    {
         $sourceFetchStart = microtime(true);
         $logger->info('[Importer] Fetching data from SOURCE');
-        $sourcePosts = $this->sourceRepository->findAll();
-        $logger->info(sprintf('[Importer] %d SOURCE data fetched in %d seconds', count($sourcePosts), microtime(true) - $sourceFetchStart));
-        $logger->info('[Importer] Transforming SOURCE data');
+        $sourceData = $this->sourceRepository->findAll();
+        $logger->info(sprintf('[Importer] %d SOURCE data fetched in %d seconds', count($sourceData), microtime(true) - $sourceFetchStart));
+        return $sourceData;
+    }
 
-        $sourcePosts = array_map(function (WP_Post $post) use ($logger, $isDryRun): ?WP_Post {
+    protected function transformSourceData(array $sourceData, LoggerInterface $logger, bool $isDryRun): array
+    {
+        $logger->info('[Importer] Transforming SOURCE data');
+        $sourceData = array_map(function ($sourceItem) use ($logger, $isDryRun): ?WP_Post {
             try {
-                return $this->sourceTransformer->transform($post, $isDryRun);
+                return $this->sourceTransformer->transform($sourceItem, $isDryRun);
             } catch (TransformException $e) {
-                $logger->error(sprintf('Erreur de transformation du produit source %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
+                $logger->error(sprintf('Error transforming source item %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
                 return null;
             }
-        }, $sourcePosts);
-        $sourcePosts = array_filter($sourcePosts);
+        }, $sourceData);
+        $sourceData = array_filter($sourceData);
+        $logger->info(sprintf('[Importer] %d SOURCE data transformed', count($sourceData)));
+        return $sourceData;
+    }
 
-        $logger->info(sprintf('[Importer] %d SOURCE data transformed in %d seconds', count($sourcePosts), microtime(true) - $sourceFetchStart));
-
-        //Fetch Data from BDD
+    protected function fetchDestinationData(LoggerInterface $logger): array
+    {
         $bddFetchStart = microtime(true);
         $logger->info('[Importer] Fetching data from BDD');
-        $bddPosts = $this->destinationRepository->findAll();
-        $logger->info(sprintf('[Importer] %d DESTINATION data fetched in %d seconds', count($bddPosts), microtime(true) - $bddFetchStart));
+        $destinationData = $this->destinationRepository->findAll();
+        $logger->info(sprintf('[Importer] %d DESTINATION data fetched in %d seconds', count($destinationData), microtime(true) - $bddFetchStart));
+        return $destinationData;
+    }
+
+    protected function transformDestinationData(array $destinationData, LoggerInterface $logger, bool $isDryRun): array
+    {
         $logger->info('[Importer] Transforming DESTINATION data');
-        $bddPosts = array_map(function (WP_Post $post) use ($logger, $isDryRun): ?WP_Post {
+        $destinationData = array_map(function ($destinationItem) use ($logger, $isDryRun): ?WP_Post {
             try {
                 return $this->destinationTransformer->transform($post, $isDryRun);
             } catch (TransformException $e) {
-                $logger->error(sprintf('Erreur de transformation du produit bdd %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
+                $logger->error(sprintf('Error transforming destination item %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
                 return null;
             }
-        }, $bddPosts);
-        $bddPosts = array_filter($bddPosts);
-        $logger->info(sprintf('[Importer] %d DESTINATION data transformed in %d seconds', count($bddPosts), microtime(true) - $bddFetchStart));
+        }, $destinationData);
+        $destinationData = array_filter($destinationData);
+        $logger->info(sprintf('[Importer] %d DESTINATION data transformed', count($destinationData)));
+        return $destinationData;
+    }
 
+    protected function syncData(array $sourceData, array $destinationData, ImportRequestInterface $request, LoggerInterface $logger)
+    {
         $syncStart = microtime(true);
         $logger->info('[Importer] Starting the syncing process');
-        $syncRequest = new SyncRequest($sourcePosts, $bddPosts, $isDryRun, $request->isDeletionEnabled());
+        $syncRequest = new SyncRequest($sourceData, $destinationData, $request->isDryRun(), $request->isDeletionEnabled());
         $syncResponse = $this->syncer->sync($syncRequest, $logger);
         $syncResponse->setGenerationTime(microtime(true) - $syncStart);
         $logger->info(sprintf('[Importer] Syncing process done in %d seconds', $syncResponse->getGenerationTime()));
+        return $syncResponse;
+    }
 
+    protected function forgeImportResponse($syncResponse): ImportResponseInterface
+    {
         $syncResponseCode = $syncResponse->getCode();
-        if ($syncResponse->isSuccess()) {
-            $importResponseMsgKey = ImportResponseInterface::SUCCESS;
-        } else {
-            $importResponseMsgKey = ImportResponseInterface::ERROR;
-        }
+        $importResponseMsgKey = $syncResponse->isSuccess()
+            ? ImportResponseInterface::SUCCESS
+            : ImportResponseInterface::ERROR;
         $importResponse = new ImportResponse($syncResponseCode, $importResponseMsgKey);
         $importResponse->setSyncResponse($syncResponse);
-
         return $importResponse;
     }
 }

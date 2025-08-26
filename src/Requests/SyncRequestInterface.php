@@ -7,23 +7,12 @@ use WP_Post;
 
 interface SyncRequestInterface extends HasDryRunInterface, HasDeletionEnabledInterface
 {
-    /**
-     * @return WP_Post[]
-     */
-    public function getExistingPosts(): array;
 
-    /**
-     * @param WP_Post[] $existingPosts
-     */
-    public function setExistingPosts(array $existingPosts): static;
+    public function getExistingItems(): array;
 
-    /**
-     * @return WP_Post[]
-     */
-    public function getNewPosts(): array;
+    public function setExistingItems(array $existingItems): static;
 
-    /**
-     * @param WP_Post[] $newPosts
-     */
-    public function setNewPosts(array $newPosts): static;
+    public function getNewItems(): array;
+
+    public function setNewItems(array $newItems): static;
 }

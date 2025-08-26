@@ -11,47 +11,47 @@ class SyncRequest implements SyncRequestInterface
     use HasDryRun;
     use HasDeletionEnabled;
 
-    protected array $existingPosts = [];
-    protected array $newPosts = [];
+    protected array $existingItems = [];
+    protected array $newItems = [];
 
     /**
-     * @param WP_Post[] $existingPosts
-     * @param WP_Post[] $newPosts
+     * @param WP_Post[] $existingItems
+     * @param WP_Post[] $newItems
      * @param bool $dryRun
      * @param bool $deletionEnabled
      */
     public function __construct(
-        array $newPosts,
-        array $existingPosts,
+        array $newItems,
+        array $existingItems,
         bool $dryRun = false,
         bool $deletionEnabled = false
     )
     {
-        $this->newPosts = $newPosts;
-        $this->existingPosts = $existingPosts;
+        $this->newItems = $newItems;
+        $this->existingItems = $existingItems;
         $this->dryRun = $dryRun;
         $this->deletionEnabled = $deletionEnabled;
     }
 
-    public function getExistingPosts(): array
+    public function getExistingItems(): array
     {
-        return $this->existingPosts;
+        return $this->existingItems;
     }
 
-    public function setExistingPosts(array $existingPosts): static
+    public function setExistingItems(array $existingItems): static
     {
-        $this->existingPosts = $existingPosts;
+        $this->existingItems = $existingItems;
         return $this;
     }
 
-    public function getNewPosts(): array
+    public function getNewItems(): array
     {
-        return $this->newPosts;
+        return $this->newItems;
     }
 
-    public function setNewPosts(array $newPosts): static
+    public function setNewItems(array $newItems): static
     {
-        $this->newPosts = $newPosts;
+        $this->newItems = $newItems;
         return $this;
     }
 
