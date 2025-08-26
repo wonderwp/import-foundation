@@ -131,14 +131,13 @@ class WpPostPersister implements PersisterInterface, HasLoggerInterface
         $associatedMedia = [];
 
         if (!empty($postData[PersisterInterface::MEDIA_INPUT])) {
-            var_dump($postData[PersisterInterface::MEDIA_INPUT]);
             foreach ($postData[PersisterInterface::MEDIA_INPUT] as $mediaKey => $mediaValue) {
                 $associatedMedia[$mediaKey] = $isDryRun ? false : $this->mediaPersister->downloadAndCreateAttachment($mediaValue, $postId, $mediaKey, $isDryRun);
             }
         }
 
         $associatedMedia = apply_filters('WpPostPersister/savePostData/savePostMedia/associatedMedia', $associatedMedia, $postId, $postData, $updateReasons, $isDryRun, $this);
-        
+
         //Update the post with the associated media
         foreach ($associatedMedia as $mediaKey => $attachmentId) {
             if ($attachmentId && !is_wp_error($attachmentId)) {
