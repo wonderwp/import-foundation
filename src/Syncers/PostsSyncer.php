@@ -6,48 +6,59 @@ use WonderWp\Component\ImportFoundation\Persisters\PersisterInterface;
 use WonderWp\Component\ImportFoundation\Requests\SyncRequestInterface;
 use WonderWp\Component\ImportFoundation\Responses\SyncResponse;
 use WonderWp\Component\ImportFoundation\Responses\SyncResponseInterface;
+use WonderWp\Component\ImportFoundation\Syncers\Traits\IndexComparisonTrait;
+use WonderWp\Component\ImportFoundation\Syncers\Traits\MetaComparisonTrait;
 use Throwable;
 use WonderWp\Component\Logging\HasLoggerInterface;
+use WonderWp\Component\Logging\HasLoggerTrait;
 use WonderWp\Component\Logging\LoggerInterface;
 use WonderWp\Component\Task\Progress\ProgressInterface;
 use WP_Error;
-use WP_Item;
+use WP_Post;
 
 class PostsSyncer extends AbstractSyncer
 {
-    protected array $itemComparisonIndexes = [
-        'item_title',
-        'item_excerpt'
-    ];
-    protected array $itemMetaComparisonIndexes = [];
+    use IndexComparisonTrait, MetaComparisonTrait;
+
     protected array $itemTermsComparisonIndexes = [];
+
+    public function __construct(PersisterInterface $persister)
+    {
+        parent::__construct($persister);
+        
+        // Set default comparison indexes for posts
+        $this->setItemComparisonIndexes([
+            'post_title',
+            'post_excerpt'
+        ]);
+    }
 
     protected function idToLog($item): string
     {
-        if(!$item instanceof WP_Item){
-            throw new \InvalidArgumentException('Item must be an instance of WP_Item');
+        if(!$item instanceof WP_Post){
+            throw new \InvalidArgumentException('Item must be an instance of WP_Post');
         }
 
-        /** @var WP_Item $item */
+        /** @var WP_Post $item */
         return $item->item_name . '#' . ($this->findItemId($item));
     }
 
     protected function findItemId(mixed $item): int|string
     {
-        if(!$item instanceof WP_Item){
-            throw new \InvalidArgumentException('Item must be an instance of WP_Item');
+        if(!$item instanceof WP_Post){
+            throw new \InvalidArgumentException('Item must be an instance of WP_Post');
         }
-        /** @var WP_Item $item */
+        /** @var WP_Post $item */
 
         $metaInputAttribute = PersisterInterface::META_INPUT;
-        //Test with item->meta_input['item_id']
+        //Test with item->meta_input['sync_id']
         if (isset($item->$metaInputAttribute[PersisterInterface::SYNC_ID])) {
             return $item->$metaInputAttribute[PersisterInterface::SYNC_ID];
         }
 
-        //If empty, test with item acf meta item_id
-        if (function_exists('get_field')) {
-            $itemId = get_field(PersisterInterface::SYNC_ID, $item->ID);
+        //If empty, test with item acf meta sync_id
+        if (function_exists('\get_field')) {
+            $itemId = \get_field(PersisterInterface::SYNC_ID, $item->ID);
             if (!empty($itemId)) {
                 return (int)$itemId;
             }
@@ -57,71 +68,73 @@ class PostsSyncer extends AbstractSyncer
         return $item->item_name;
     }
 
-
+    /**
+     * Get existing item meta value for posts
+     */
+    protected function getExistingItemMetaValue(mixed $destinationItem, string $metaKey): mixed
+    {
+        return \get_post_meta($destinationItem->ID, $metaKey, true);
+    }
 
     protected function checkIfItemNeedsUpdate(mixed $sourceItem, mixed $destinationItem): array
     {
         $updateReasons = [];
 
-        //First, check if an update is needed by comparing the new item with the existing one
-        $newItemData = $sourceItem->to_array();
-        $existingItemData = $existingItem->to_array();
+        // Check if the item needs an update based on the indexes to check
+        $updateReasons = array_merge($updateReasons, $this->checkItemIndexesForUpdate($sourceItem, $destinationItem));
 
-        $indexesToCheck = $this->getItemIndexesToCheck();
-        if (empty($indexesToCheck)) {
+        // Check if the item needs an update based on the metas to check
+        $updateReasons = array_merge($updateReasons, $this->checkItemMetasForUpdate($sourceItem, $destinationItem));
+
+        // Check if the item needs an update based on the acf fields to check
+        $updateReasons = array_merge($updateReasons, $this->checkItemAcfForUpdate($sourceItem, $destinationItem));
+
+        // Check if the item needs an update based on the terms to check
+        $updateReasons = array_merge($updateReasons, $this->checkItemTermsForUpdate($sourceItem, $destinationItem));
+
+        return $updateReasons;
+    }
+
+    /**
+     * Check if item needs update based on ACF fields
+     */
+    protected function checkItemAcfForUpdate(mixed $sourceItem, mixed $destinationItem): array
+    {
+        $updateReasons = [];
+        $newItemData = $sourceItem->to_array();
+
+        if (!function_exists('\get_field')) {
             return $updateReasons;
         }
 
-
-        //Check if the item needs an update based on the indexes to check
-
-        foreach ($indexesToCheck as $index) {
-            //Keep the comparison operator loose here to avoid type comparison issues
-            if ($this->itemValueChanged($index, $newItemData[$index], $existingItemData[$index])) {
-                $updateReasons[$index] = [
-                    $newItemData[$index] ?? null,
-                    $existingItemData[$index] ?? null
-                ];
-            }
-        }
-
-        $metasToCheck = $this->getItemMetasIndexesToCheck($newItemData);
-        //Check if the item needs an update based on the metas to check
-        foreach ($metasToCheck as $metaKey) {
-            $existingItemMetaValue = $existingItemData[PersisterInterface::META_INPUT][$metaKey] ?? null;
-            if (empty($existingItemMetaValue)) {
-                $existingItemMetaValue = get_item_meta($existingItem->ID, $metaKey, true);
-            }
-            //Keep the comparison operator loose here to avoid type comparison issues
-            if ($this->itemValueChanged($metaKey, $newItemData[PersisterInterface::META_INPUT][$metaKey], $existingItemMetaValue)) {
+        $acfToCheck = $this->getItemAcfIndexesToCheck($newItemData);
+        foreach ($acfToCheck as $metaKey) {
+            $existingItemMetaValue = \get_field($metaKey, $destinationItem->ID);
+            // Keep the comparison operator loose here to avoid type comparison issues
+            if ($this->itemValueChanged($metaKey, $newItemData[PersisterInterface::ACF_INPUT][$metaKey], $existingItemMetaValue)) {
                 $updateReasons[$metaKey] = [
-                    $newItemData[PersisterInterface::META_INPUT][$metaKey] ?? null,
+                    $newItemData[PersisterInterface::ACF_INPUT][$metaKey] ?? null,
                     $existingItemMetaValue
                 ];
             }
         }
 
-        if (function_exists('get_field')) {
-            $acfToCheck = $this->getItemAcfIndexesToCheck($newItemData);
-            //Check if the item needs an update based on the metas to check
-            foreach ($acfToCheck as $metaKey) {
-                $existingItemMetaValue = get_field($metaKey, $existingItem->ID);
-                //Keep the comparison operator loose here to avoid type comparison issues
-                if ($this->itemValueChanged($metaKey, $newItemData[PersisterInterface::ACF_INPUT][$metaKey], $existingItemMetaValue)) {
-                    $updateReasons[$metaKey] = [
-                        $newItemData[PersisterInterface::ACF_INPUT][$metaKey] ?? null,
-                        $existingItemMetaValue
-                    ];
-                }
-            }
-        }
+        return $updateReasons;
+    }
+
+    /**
+     * Check if item needs update based on taxonomy terms
+     */
+    protected function checkItemTermsForUpdate(mixed $sourceItem, mixed $destinationItem): array
+    {
+        $updateReasons = [];
+        $newItemData = $sourceItem->to_array();
 
         $termsToCheck = $this->getItemTermsIndexesToCheck($newItemData);
-        //Check if the item needs an update based on the metas to check
         foreach ($termsToCheck as $termKey) {
             $existingItemTermsValue = $existingItemData[PersisterInterface::TAX_INPUT][$termKey] ?? null;
-            if (empty($existingItemMetaValue)) {
-                $existingItemTermsValue = wp_get_item_terms($existingItem->ID, $termKey);
+            if (empty($existingItemTermsValue)) {
+                $existingItemTermsValue = \wp_get_post_terms($destinationItem->ID, $termKey);
                 usort($existingItemTermsValue, fn($a, $b) => $a->term_id <=> $b->term_id);
             }
 
@@ -134,19 +147,6 @@ class PostsSyncer extends AbstractSyncer
         }
 
         return $updateReasons;
-    }
-
-    protected function getItemIndexesToCheck(): array
-    {
-        return $this->getItemComparisonIndexes();
-    }
-
-    protected function getItemMetasIndexesToCheck(array $newItemData): array
-    {
-        //Metas
-        $existingItemDataMetaInputs = $newItemData[PersisterInterface::META_INPUT] ?? [];
-
-        return array_keys($existingItemDataMetaInputs);
     }
 
     protected function getItemAcfIndexesToCheck(array $newItemData): array
@@ -163,32 +163,8 @@ class PostsSyncer extends AbstractSyncer
         return array_keys($existingItemDataTerms);
     }
 
-
-
-    public function getItemComparisonIndexes(): array
-    {
-        return $this->itemComparisonIndexes;
-    }
-
-    public function setItemComparisonIndexes(array $itemComparisonIndexes): static
-    {
-        $this->itemComparisonIndexes = $itemComparisonIndexes;
-        return $this;
-    }
-
-    public function getItemMetaComparisonIndexes(): array
-    {
-        return $this->itemMetaComparisonIndexes;
-    }
-
     public function getItemTermsComparisonIndexes(): array
     {
         return $this->itemTermsComparisonIndexes;
-    }
-
-    public function setItemMetaComparisonIndexes(array $itemMetaComparisonIndexes): static
-    {
-        $this->itemMetaComparisonIndexes = $itemMetaComparisonIndexes;
-        return $this;
     }
 }

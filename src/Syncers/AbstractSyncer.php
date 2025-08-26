@@ -2,6 +2,7 @@
 
 namespace WonderWp\Component\ImportFoundation\Syncers;
 
+use Throwable;
 use WonderWp\Component\ImportFoundation\Persisters\PersisterInterface;
 use WonderWp\Component\ImportFoundation\Requests\SyncRequestInterface;
 use WonderWp\Component\ImportFoundation\Responses\SyncResponse;
@@ -195,11 +196,11 @@ abstract class AbstractSyncer implements SyncerInterface
     abstract protected function findItemId(mixed $item): int|string;
 
     /**
-     * @param WP_Item[] $itemsToSearch
-     * @param WP_Item $itemToFind
-     * @return WP_Item|null
+     * @param object[] $itemsToSearch
+     * @param object $itemToFind
+     * @return object|null
      */
-    protected function findItem(array $itemsToSearch, WP_Item $itemToFind): ?WP_Item
+    protected function findItem(array $itemsToSearch, object $itemToFind): ?object
     {
         $itemToFindId = $this->findItemId($itemToFind);
         //We search for the Item in the Items to search based on its item_name
