@@ -22,7 +22,8 @@
   "require": {
     "php": ">=8.0",
     "wonderwp/logging": "dev-feature/php_8",
-    "wonderwp/task": "dev-feature/php_8"
+    "wonderwp/task": "dev-feature/php_8",
+    "wonderwp/response": "dev-feature/php8"
   },
   "autoload": {
     "psr-4": {
