@@ -2,7 +2,11 @@
   "name": "wonderwp/import-foundation",
   "description": "WonderWp ImportFoundation Component",
   "type": "library",
-  "keywords": ["import","WonderWp","WordPress"],
+  "keywords": [
+    "import",
+    "WonderWp",
+    "WordPress"
+  ],
   "homepage": "https://github.com/wonderwp/ImportFoundation",
   "license": "MIT",
   "authors": [
@@ -16,10 +20,14 @@
     }
   ],
   "require": {
-    "php": ">=8.0"
+    "php": ">=8.0",
+    "wonderwp/logging": "dev-feature/php_8",
+    "wonderwp/task": "dev-feature/php_8"
   },
   "autoload": {
-    "psr-4": {"WonderWp\\Component\\ImportFoundation\\": "src"},
+    "psr-4": {
+      "WonderWp\\Component\\ImportFoundation\\": "src"
+    },
     "exclude-from-classmap": [
       "/Tests/"
     ]
