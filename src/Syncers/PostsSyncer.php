@@ -18,7 +18,7 @@ class PostsSyncer extends AbstractSyncer
     public function __construct(PersisterInterface $persister)
     {
         parent::__construct($persister);
-        
+
         // Set default comparison indexes for posts
         $this->setItemComparisonIndexes([
             'post_title',
@@ -33,7 +33,7 @@ class PostsSyncer extends AbstractSyncer
         }
 
         /** @var WP_Post $item */
-        return $item->item_name . '#' . ($this->findItemId($item));
+        return $item->post_name . '#' . ($this->findItemId($item));
     }
 
     protected function findItemId(mixed $item): int|string
@@ -45,7 +45,7 @@ class PostsSyncer extends AbstractSyncer
 
         $metaInputAttribute = PersisterInterface::META_INPUT;
         //Test with item->meta_input['sync_id']
-        if (isset($item->$metaInputAttribute[PersisterInterface::SYNC_ID])) {
+        if (!empty($item->$metaInputAttribute[PersisterInterface::SYNC_ID])) {
             return $item->$metaInputAttribute[PersisterInterface::SYNC_ID];
         }
 
@@ -58,7 +58,7 @@ class PostsSyncer extends AbstractSyncer
         }
 
         //If empty, test with item->item_name
-        return $item->item_name;
+        return $item->post_name;
     }
 
     /**
