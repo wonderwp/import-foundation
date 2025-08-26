@@ -7,6 +7,8 @@ use WonderWp\Component\ImportFoundation\Syncers\Traits\IndexComparisonTrait;
 use WonderWp\Component\ImportFoundation\Syncers\Traits\MetaComparisonTrait;
 use WP_Post;
 
+use function WP_CLI\Utils\is_json;
+
 class PostsSyncer extends AbstractSyncer
 {
     use IndexComparisonTrait, MetaComparisonTrait;
@@ -64,7 +66,13 @@ class PostsSyncer extends AbstractSyncer
      */
     protected function getExistingItemMetaValue(mixed $destinationItem, string $metaKey): mixed
     {
-        return \get_post_meta($destinationItem->ID, $metaKey, true);
+        $meta = \get_post_meta($destinationItem->ID, $metaKey, true);
+
+        if(is_json($meta)){
+            $meta = json_decode($meta, true);
+        }
+
+        return $meta;
     }
 
     protected function checkIfItemNeedsUpdate(mixed $sourceItem, mixed $destinationItem): array

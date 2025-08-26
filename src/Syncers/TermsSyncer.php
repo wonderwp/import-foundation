@@ -6,6 +6,8 @@ use WonderWp\Component\ImportFoundation\Persisters\PersisterInterface;
 use WonderWp\Component\ImportFoundation\Syncers\Traits\IndexComparisonTrait;
 use WonderWp\Component\ImportFoundation\Syncers\Traits\MetaComparisonTrait;
 
+use function WP_CLI\Utils\is_json;
+
 class TermsSyncer extends AbstractSyncer
 {
     use IndexComparisonTrait, MetaComparisonTrait;
@@ -52,7 +54,13 @@ class TermsSyncer extends AbstractSyncer
      */
     protected function getExistingItemMetaValue(mixed $destinationItem, string $metaKey): mixed
     {
-        return \get_term_meta($destinationItem->term_id, $metaKey, true);
+        $meta = \get_term_meta($destinationItem->term_id, $metaKey, true);
+
+        if(is_json($meta)){
+            $meta = json_decode($meta, true);
+        }
+
+        return $meta;
     }
 
     protected function checkIfItemNeedsUpdate(mixed $sourceItem, mixed $destinationItem): array
