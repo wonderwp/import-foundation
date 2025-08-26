@@ -3,17 +3,8 @@
 namespace WonderWp\Component\ImportFoundation\Syncers;
 
 use WonderWp\Component\ImportFoundation\Persisters\PersisterInterface;
-use WonderWp\Component\ImportFoundation\Requests\SyncRequestInterface;
-use WonderWp\Component\ImportFoundation\Responses\SyncResponse;
-use WonderWp\Component\ImportFoundation\Responses\SyncResponseInterface;
 use WonderWp\Component\ImportFoundation\Syncers\Traits\IndexComparisonTrait;
 use WonderWp\Component\ImportFoundation\Syncers\Traits\MetaComparisonTrait;
-use Throwable;
-use WonderWp\Component\Logging\HasLoggerInterface;
-use WonderWp\Component\Logging\HasLoggerTrait;
-use WonderWp\Component\Logging\LoggerInterface;
-use WonderWp\Component\Task\Progress\ProgressInterface;
-use WP_Error;
 use WP_Post;
 
 class PostsSyncer extends AbstractSyncer

@@ -3,12 +3,8 @@
 namespace WonderWp\Component\ImportFoundation\Syncers;
 
 use WonderWp\Component\ImportFoundation\Persisters\PersisterInterface;
-use WonderWp\Component\ImportFoundation\Requests\SyncRequestInterface;
-use WonderWp\Component\ImportFoundation\Responses\SyncResponse;
-use WonderWp\Component\ImportFoundation\Responses\SyncResponseInterface;
 use WonderWp\Component\ImportFoundation\Syncers\Traits\IndexComparisonTrait;
 use WonderWp\Component\ImportFoundation\Syncers\Traits\MetaComparisonTrait;
-use WonderWp\Component\Logging\LoggerInterface;
 
 class TermsSyncer extends AbstractSyncer
 {
