@@ -83,7 +83,7 @@ abstract class AbstractImporter implements ImporterInterface
     protected function transformSourceData(array $sourceData, LoggerInterface $logger, bool $isDryRun): array
     {
         $logger->info('[Importer] Transforming SOURCE data');
-        $sourceData = array_map(function ($sourceItem) use ($logger, $isDryRun): ?WP_Post {
+        $sourceData = array_map(function ($sourceItem) use ($logger, $isDryRun) {
             try {
                 return $this->sourceTransformer->transform($sourceItem, $isDryRun);
             } catch (TransformException $e) {
@@ -108,11 +108,11 @@ abstract class AbstractImporter implements ImporterInterface
     protected function transformDestinationData(array $destinationData, LoggerInterface $logger, bool $isDryRun): array
     {
         $logger->info('[Importer] Transforming DESTINATION data');
-        $destinationData = array_map(function ($destinationItem) use ($logger, $isDryRun): ?WP_Post {
+        $destinationData = array_map(function ($destinationItem) use ($logger, $isDryRun) {
             try {
-                return $this->destinationTransformer->transform($post, $isDryRun);
+                return $this->destinationTransformer->transform($destinationItem, $isDryRun);
             } catch (TransformException $e) {
-                $logger->error(sprintf('Error transforming destination item %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
+                $logger->error(sprintf('Error transforming destination item %s : %s', $destinationItem->post_title, $e->getMessage()), ['exit' => false]);
                 return null;
             }
         }, $destinationData);

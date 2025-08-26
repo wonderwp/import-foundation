@@ -14,7 +14,7 @@ class TermTransformer implements TransformerInterface
     public function transform(mixed $item, bool $isDryRun): mixed
     {
         if(!($item instanceof WP_Term)) {
-            throw new \InvalidArgumentException('Item must be an instance of WP_Term');
+            throw new \InvalidArgumentException(sprintf('Item must be an instance of WP_Term, %s given', is_object($item) ? get_class($item) : gettype($item)));
         }
 
         return $item;
