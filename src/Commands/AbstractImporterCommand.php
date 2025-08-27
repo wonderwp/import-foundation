@@ -4,6 +4,7 @@ namespace WonderWp\Component\ImportFoundation\Commands;
 
 use WonderWp\Component\ImportFoundation\Exceptions\ImportException;
 use WonderWp\Component\ImportFoundation\Importers\ImporterInterface;
+use WonderWp\Component\ImportFoundation\Resetters\ResetterInterface;
 use WonderWp\Component\ImportFoundation\Responses\ImportResponse;
 use WonderWp\Component\ImportFoundation\Responses\ImportResponseInterface;
 use WonderWp\Component\Logging\LoggerInterface;
@@ -59,6 +60,14 @@ abstract class AbstractImporterCommand extends AbstractWpCliCommand implements H
         try {
             $start = microtime(true);
             $this->bootstrap();
+
+            if (isset($assocArgs[self::RESET_ARG])) {
+                $this->logger->info(sprintf('Reset required with %s resetter', $assocArgs[self::IMPORTER_KEY_ARG]));
+                $resetter = $this->loadResetter($assocArgs[self::RESET_ARG]);
+                $resetResponse = $resetter->reset();
+                $this->logger->info(sprintf('Reset response: %s', $resetResponse));
+            }
+
             $importer = $this->loadImporter($assocArgs[self::IMPORTER_KEY_ARG]);
             $request = $importer->forgeRequest($args, $assocArgs);
             $response = $importer->import($request, $this->logger);
@@ -81,6 +90,11 @@ abstract class AbstractImporterCommand extends AbstractWpCliCommand implements H
         $this->setDryRun(isset($assoc_args[self::DRY_RUN_ARG]));
 
         return $this;
+    }
+
+    protected function loadResetter(string $resetterKey): ResetterInterface
+    {
+        throw new ImportException('The method loadResetter must be implemented in the child class and return a ResetterInterface instance.');
     }
 
     protected function loadImporter(string $importerKey): ImporterInterface

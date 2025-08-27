@@ -2,7 +2,7 @@
 
 namespace WonderWp\Component\ImportFoundation\Resetters;
 
-use WonderWp\Component\ImportFoundation\Response\ResetResponseInterface;
+use WonderWp\Component\ImportFoundation\Responses\ResetResponseInterface;
 
 interface ResetterInterface
 {

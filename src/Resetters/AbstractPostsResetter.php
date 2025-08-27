@@ -2,8 +2,8 @@
 
 namespace WonderWp\Component\ImportFoundation\Resetters;
 
-use WonderWp\Component\ImportFoundation\Response\ResetResponse;
-use WonderWp\Component\ImportFoundation\Response\ResetResponseInterface;
+use WonderWp\Component\ImportFoundation\Responses\ResetResponse;
+use WonderWp\Component\ImportFoundation\Responses\ResetResponseInterface;
 use Throwable;
 
 abstract class AbstractPostsResetter implements ResetterInterface
