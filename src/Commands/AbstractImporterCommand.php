@@ -62,7 +62,7 @@ abstract class AbstractImporterCommand extends AbstractWpCliCommand implements H
             $this->bootstrap();
 
             if (isset($assocArgs[self::RESET_ARG])) {
-                $this->logger->info(sprintf('Reset required with %s resetter', $assocArgs[self::IMPORTER_KEY_ARG]));
+                $this->logger->info(sprintf('Reset required with %s resetter', $assocArgs[self::RESET_ARG]));
                 $resetter = $this->loadResetter($assocArgs[self::RESET_ARG]);
                 $resetResponse = $resetter->reset();
                 $this->logger->info(sprintf('Reset response: %s', $resetResponse));

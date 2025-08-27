@@ -70,6 +70,42 @@ class WpMediaPersister
     }
 
     /**
+     * Check if a file already exists on the server filesystem and retrieve its content
+     * 
+     * @param string $baseFileName The base file name without extension
+     * @return array|false Array with 'path', 'content', and 'extension' if found, false otherwise
+     */
+    public function getExistingFileOnServer(string $baseFileName): array|false
+    {
+        // Get upload directory info
+        $uploadDir = wp_upload_dir();
+        $baseDir = $uploadDir['basedir'];
+        
+        // Common image extensions to check
+        $extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        
+        foreach ($extensions as $ext) {
+            $fileName = $baseFileName . '.' . $ext;
+            $filePath = $baseDir . '/' . $fileName;
+            
+            // Check if file exists on filesystem
+            if (file_exists($filePath)) {
+                // Read the file content
+                $fileContent = file_get_contents($filePath);
+                if ($fileContent !== false) {
+                    return [
+                        'path' => $filePath,
+                        'content' => $fileContent,
+                        'extension' => $ext
+                    ];
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
      * Downloads an image from a URL and creates a WordPress attachment
      *
      * @param string $imageUrl The URL of the image to download
@@ -85,13 +121,22 @@ class WpMediaPersister
             return new WP_Error('invalid_url', 'Invalid image URL');
         }
 
-        //Check if the attachment already exists
+        //Check if the attachment already exists in database
         $existingAttachmentId = $this->getExistingAttachment($baseFileName);
         if ($existingAttachmentId) {
             $this->log('existingAttachmentId found : ' . $existingAttachmentId);
             return $existingAttachmentId;
         }
 
+        // Check if the file content already exists on the server filesystem
+        $existingFile = $this->getExistingFileOnServer($baseFileName);
+        if ($existingFile) {
+            $this->log('existingFile found on server: ' . $existingFile['path'] . ' - using existing content instead of remote download');
+            
+            // Use the existing file content to create the attachment
+            $fileName = $baseFileName . '.' . $existingFile['extension'];
+            return $this->uploadImageFromContent($fileName, $existingFile['content'], $postId);
+        }
 
         //Fetch the image content response from the API URL
         $newPhotoContentResponse = wp_remote_get($imageUrl, [
@@ -99,6 +144,7 @@ class WpMediaPersister
         ]);
 
         if (is_wp_error($newPhotoContentResponse)) {
+            $this->log('image_download_failed: ' . $newPhotoContentResponse->get_error_message());
             return new WP_Error('image_download_failed', $newPhotoContentResponse->get_error_message());
         }
 
