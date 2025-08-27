@@ -35,10 +35,10 @@ class WpTermPersister implements PersisterInterface
 
         if ($isDryRun) {
             // Return a fake ID for dry run
-            return rand(1000, 2000);
+            $result = ['term_id' => rand(1000, 2000)];
+        } else {
+            $result = wp_insert_term($term->name, $term->taxonomy, $termData);
         }
-
-        $result = wp_insert_term($term->name, $term->taxonomy, $termData);
         
         if (is_wp_error($result)) {
             return $result;
@@ -62,11 +62,11 @@ class WpTermPersister implements PersisterInterface
         ];
 
         if ($isDryRun) {
-            return (int) $existingTermId;
+            $result = ['term_id' => (int) $existingTermId];
+        } else {
+            $result = wp_update_term($existingTermId, $newTerm->taxonomy, $termData);
         }
 
-        $result = wp_update_term($existingTermId, $newTerm->taxonomy, $termData);
-        
         if (is_wp_error($result)) {
             return $result;
         }
@@ -114,6 +114,6 @@ class WpTermPersister implements PersisterInterface
             }
         }
 
-        return $savedMeta;
+        return apply_filters('WpTermPersister/saveTermMeta/savedMeta', $savedMeta, $termId, $term, $isDryRun, $this);
     }
 }
