@@ -88,7 +88,7 @@ class WpMediaPersister
         //Check if the attachment already exists
         $existingAttachmentId = $this->getExistingAttachment($baseFileName);
         if ($existingAttachmentId) {
-            // $this->log($logger, 'existingAttachmentId found : ' . $existingAttachmentId);
+            $this->log('existingAttachmentId found : ' . $existingAttachmentId);
             return $existingAttachmentId;
         }
 
@@ -105,10 +105,10 @@ class WpMediaPersister
         // Get the content of the new photo from the API response
         $newPhotoContent = wp_remote_retrieve_body($newPhotoContentResponse);
         if (empty($newPhotoContent)) {
-            //$this->log($logger, 'newPhotoContent is empty');
+            $this->log('newPhotoContent is empty');
             return new WP_Error('empty_content', 'Image content is empty');
         } else {
-            //$this->log($logger, 'newPhotoContent found');
+            $this->log('newPhotoContent found');
         }
 
         //Compute the file name from the image and product info
@@ -119,12 +119,17 @@ class WpMediaPersister
         // Use the persister to upload the image (only if not a dry run)
         if ($isDryRun) {
             $attachmentId = rand(5000, 6000);
-            // $this->log($logger, sprintf('newPhotoContent %s dry run (no effective upload)', $fileName));
+            $this->log(sprintf('newPhotoContent %s dry run (no effective upload)', $fileName));
             return $attachmentId;
         } else {
-            // $this->log($logger, sprintf('uploading new photo %s', $fileName));
+            $this->log(sprintf('uploading new photo %s', $fileName));
         }
 
         return $this->uploadImageFromContent($fileName, $newPhotoContent, $postId);
+    }
+
+    private function log(string $message)
+    {
+        //echo $message . PHP_EOL;
     }
 }

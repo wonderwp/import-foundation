@@ -132,7 +132,8 @@ class WpPostPersister implements PersisterInterface, HasLoggerInterface
 
         if (!empty($postData[PersisterInterface::MEDIA_INPUT])) {
             foreach ($postData[PersisterInterface::MEDIA_INPUT] as $mediaKey => $mediaValue) {
-                $associatedMedia[$mediaKey] = $isDryRun ? false : $this->mediaPersister->downloadAndCreateAttachment($mediaValue, $postId, $mediaKey, $isDryRun);
+                $baseFileName = pathinfo($mediaValue, PATHINFO_FILENAME);
+                $associatedMedia[$mediaKey] = $isDryRun ? false : $this->mediaPersister->downloadAndCreateAttachment($mediaValue, $postId, $baseFileName, $isDryRun);
             }
         }
 
