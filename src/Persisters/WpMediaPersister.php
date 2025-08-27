@@ -80,10 +80,33 @@ class WpMediaPersister
         // Get upload directory info
         $uploadDir = wp_upload_dir();
         $baseDir = $uploadDir['basedir'];
+        $subDir = $uploadDir['subdir'];
         
         // Common image extensions to check
         $extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
         
+        // Check in current upload directory (respects year/month organization)
+        $currentDir = $baseDir . $subDir;
+        
+        foreach ($extensions as $ext) {
+            $fileName = $baseFileName . '.' . $ext;
+            $filePath = $currentDir . '/' . $fileName;
+            
+            // Check if file exists on filesystem
+            if (file_exists($filePath)) {
+                // Read the file content
+                $fileContent = file_get_contents($filePath);
+                if ($fileContent !== false) {
+                    return [
+                        'path' => $filePath,
+                        'content' => $fileContent,
+                        'extension' => $ext
+                    ];
+                }
+            }
+        }
+        
+        // Also check in base directory for files that might not be organized by date
         foreach ($extensions as $ext) {
             $fileName = $baseFileName . '.' . $ext;
             $filePath = $baseDir . '/' . $fileName;
