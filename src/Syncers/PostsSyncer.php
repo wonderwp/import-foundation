@@ -131,21 +131,72 @@ class PostsSyncer extends AbstractSyncer
 
         $termsToCheck = $this->getItemTermsIndexesToCheck($newItemData);
         foreach ($termsToCheck as $termKey) {
-            $existingItemTermsValue = $existingItemData[PersisterInterface::TAX_INPUT][$termKey] ?? null;
-            if (empty($existingItemTermsValue)) {
-                $existingItemTermsValue = \wp_get_post_terms($destinationItem->ID, $termKey);
-                usort($existingItemTermsValue, fn($a, $b) => $a->term_id <=> $b->term_id);
-            }
+            // Get new term IDs from source item
+            $newTermIds = $this->extractTermIds($newItemData[PersisterInterface::TAX_INPUT][$termKey] ?? []);
+            
+            // Get existing term IDs from destination item
+            $existingTermIds = $this->extractTermIdsFromPost($destinationItem->ID, $termKey);
 
-            if ($this->itemValueChanged($termKey, $newItemData[PersisterInterface::TAX_INPUT][$termKey], $existingItemTermsValue)) {
+            // Compare the arrays of term IDs
+            if ($this->termIdsChanged($newTermIds, $existingTermIds)) {
                 $updateReasons[$termKey] = [
-                    $newItemData[PersisterInterface::TAX_INPUT][$termKey] ?? null,
-                    $existingItemTermsValue
+                    $newTermIds,
+                    $existingTermIds
                 ];
             }
         }
 
         return $updateReasons;
+    }
+
+    /**
+     * Extract term IDs from term objects or arrays
+     */
+    protected function extractTermIds($terms): array
+    {
+        if (empty($terms)) {
+            return [];
+        }
+
+        $termIds = [];
+        foreach ($terms as $term) {
+            if (is_object($term) && isset($term->term_id)) {
+                $termIds[] = (int) $term->term_id;
+            } elseif (is_array($term) && isset($term['term_id'])) {
+                $termIds[] = (int) $term['term_id'];
+            } elseif (is_numeric($term)) {
+                $termIds[] = (int) $term;
+            }
+        }
+
+        // Sort for consistent comparison
+        sort($termIds);
+        return $termIds;
+    }
+
+    /**
+     * Extract term IDs from existing post terms
+     */
+    protected function extractTermIdsFromPost(int $postId, string $taxonomy): array
+    {
+        $terms = \wp_get_post_terms($postId, $taxonomy);
+        
+        if (is_wp_error($terms) || empty($terms)) {
+            return [];
+        }
+
+        $termIds = array_map(fn($term) => (int) $term->term_id, $terms);
+        sort($termIds);
+        
+        return $termIds;
+    }
+
+    /**
+     * Check if term IDs have changed
+     */
+    protected function termIdsChanged(array $newTermIds, array $existingTermIds): bool
+    {
+        return $newTermIds !== $existingTermIds;
     }
 
     protected function getItemAcfIndexesToCheck(array $newItemData): array
