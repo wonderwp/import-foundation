@@ -2,7 +2,9 @@
 
 namespace WonderWp\Component\ImportFoundation\Responses;
 
-interface ResetResponseInterface
+use WonderWp\Component\Response\ResponseInterface;
+
+interface ResetResponseInterface extends ResponseInterface
 {
     const SUCCESS = 'reset.success';
     const ERROR = 'reset.error';
