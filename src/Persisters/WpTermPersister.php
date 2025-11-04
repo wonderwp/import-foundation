@@ -56,6 +56,7 @@ class WpTermPersister implements PersisterInterface
     protected function updateTerm(WP_Term $newTerm, mixed $existingTermId, array $updateReasons, bool $isDryRun = false): int|WP_Error
     {
         $termData = [
+            'name' => $newTerm->name,
             'description' => $newTerm->description,
             'slug' => $newTerm->slug,
             'parent' => $newTerm->parent,
