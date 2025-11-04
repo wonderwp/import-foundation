@@ -60,10 +60,10 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $isDryRun = $request->isDryRun();
 
-        $sourceData = $this->fetchSourceData($logger);
+        $sourceData = $this->fetchSourceData($request, $logger);
         $sourceData = $this->transformSourceData($sourceData, $logger, $isDryRun);
 
-        $destinationData = $this->fetchDestinationData($logger);
+        $destinationData = $this->fetchDestinationData($request, $logger);
         $destinationData = $this->transformDestinationData($destinationData, $logger, $isDryRun);
 
         $syncResponse = $this->syncData($sourceData, $destinationData, $request, $logger);
@@ -71,7 +71,7 @@ abstract class AbstractImporter implements ImporterInterface
         return $this->forgeImportResponse($syncResponse);
     }
 
-    protected function fetchSourceData(LoggerInterface $logger): array
+    protected function fetchSourceData(ImportRequestInterface $request, LoggerInterface $logger): array
     {
         $sourceFetchStart = microtime(true);
         $logger->info('[Importer] Fetching data from SOURCE');
@@ -87,7 +87,7 @@ abstract class AbstractImporter implements ImporterInterface
             try {
                 return $this->sourceTransformer->transform($sourceItem, $isDryRun);
             } catch (TransformException $e) {
-                $logger->error(sprintf('Error transforming source item %s : %s', $post->post_title, $e->getMessage()), ['exit' => false]);
+                $logger->error(sprintf('Error transforming source item %s : %s', $sourceItem->post_title, $e->getMessage()), ['exit' => false]);
                 return null;
             }
         }, $sourceData);
@@ -96,7 +96,7 @@ abstract class AbstractImporter implements ImporterInterface
         return $sourceData;
     }
 
-    protected function fetchDestinationData(LoggerInterface $logger): array
+    protected function fetchDestinationData(ImportRequestInterface $request, LoggerInterface $logger): array
     {
         $bddFetchStart = microtime(true);
         $logger->info('[Importer] Fetching data from BDD');
