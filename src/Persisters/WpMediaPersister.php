@@ -180,6 +180,17 @@ class WpMediaPersister
             return new WP_Error('image_download_failed', $newPhotoContentResponse->get_error_message());
         }
 
+        // Check HTTP status code
+        $statusCode = wp_remote_retrieve_response_code($newPhotoContentResponse);
+        if ($statusCode === 404) {
+            $this->log('file_not_found: ' . $imageUrl);
+            return new WP_Error('file_not_found', "File not found (404): {$imageUrl}");
+        }
+        if ($statusCode >= 400) {
+            $this->log('http_error: ' . $statusCode . ' for ' . $imageUrl);
+            return new WP_Error('http_error', "HTTP error {$statusCode} when downloading: {$imageUrl}");
+        }
+
         // Get the content of the new photo from the API response
         $newPhotoContent = wp_remote_retrieve_body($newPhotoContentResponse);
         if (empty($newPhotoContent)) {
@@ -191,8 +202,32 @@ class WpMediaPersister
 
         //Compute the file name from the image and product info
         $contentType = wp_remote_retrieve_header($newPhotoContentResponse, 'content-type');
-        $extensionFromContentType = explode('/', $contentType)[1] ?? '.jpg';
-        $fileName = $baseFileName . '.' . $extensionFromContentType;
+        
+        // Map mime types to file extensions
+        $mimeToExtension = [
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/pdf' => 'pdf',
+            'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+        ];
+        
+        // Clean content type (remove parameters like charset)
+        $cleanContentType = $contentType ? explode(';', $contentType)[0] : '';
+        $cleanContentType = trim($cleanContentType);
+        
+        // Get extension from mime type mapping, or fallback to extracting from content type
+        if ($cleanContentType && isset($mimeToExtension[$cleanContentType])) {
+            $extension = $mimeToExtension[$cleanContentType];
+        } else {
+            // Fallback: try to extract from content type
+            $extension = explode('/', $cleanContentType)[1] ?? 'jpg';
+        }
+        
+        $fileName = $baseFileName . '.' . $extension;
 
         // Use the persister to upload the image (only if not a dry run)
         if ($isDryRun) {
