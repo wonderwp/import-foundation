@@ -139,9 +139,10 @@ class WpMediaPersister
      * @param int $postId The post ID to attach the image to
      * @param string $baseFileName The base name for the file (without extension)
      * @param bool $isDryRun Whether this is a dry run
+     * @param array $wpRemoteGetArgs Optional additional arguments to pass to wp_remote_get()
      * @return int|WP_Error The attachment ID or WP_Error on failure
      */
-    public function downloadAndCreateAttachment(string $imageUrl, int $postId, string $baseFileName, bool $isDryRun): int|WP_Error
+    public function downloadAndCreateAttachment(string $imageUrl, int $postId, string $baseFileName, bool $isDryRun, array $wpRemoteGetArgs = []): int|WP_Error
     {
         //check if the image url is a valid url
         if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
@@ -166,9 +167,13 @@ class WpMediaPersister
         }
 
         //Fetch the image content response from the API URL
-        $newPhotoContentResponse = wp_remote_get($imageUrl, [
+        // Merge default args with provided args (provided args take precedence)
+        $defaultArgs = [
             'timeout' => 10,
-        ]);
+        ];
+        $remoteGetArgs = wp_parse_args($wpRemoteGetArgs, $defaultArgs);
+        
+        $newPhotoContentResponse = wp_remote_get($imageUrl, $remoteGetArgs);
 
         if (is_wp_error($newPhotoContentResponse)) {
             $this->log('image_download_failed: ' . $newPhotoContentResponse->get_error_message());
