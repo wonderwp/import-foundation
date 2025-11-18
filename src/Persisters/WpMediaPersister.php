@@ -21,9 +21,13 @@ class WpMediaPersister
         }
 
         // Create a new attachment post
+        // Use the original fileName parameter for the title (it should already be just the filename with extension)
+        // Extract just the filename part (without extension) for a clean title
+        $fileTitle = pathinfo($fileName, PATHINFO_FILENAME);
+        
         $attachment = [
             'post_mime_type' => $upload['type'],
-            'post_title' => sanitize_file_name($upload['file']),
+            'post_title' => sanitize_file_name($fileTitle),
             'post_content' => '',
             'post_status' => 'inherit',
         ];
